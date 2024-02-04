@@ -1,15 +1,18 @@
 from tkinter import *
 from tkinter import messagebox
-import random
 import pyperclip
+import json
+import random
+
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 
 
 def password_generator():
-
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-               'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
+    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u',
+               'v',
+               'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
+               'R',
                'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
     numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
     symbols = ['!', '#', '$', '%', '&', '(', ')', '*', '+']
@@ -23,35 +26,91 @@ def password_generator():
     password = "".join(password_list)
 
     entry_password.insert(0, password)
-    pyperclip.copy(password)  # Mediante esta linea ya queda guardado en el portapapeles
+    pyperclip.copy(password)
+
+
+# ---------------------------- FIND PASSWORD ------------------------------- #
+
+def find_password():
+
+    web = entry_web.get().capitalize()
+
+    try:
+        with open('data.json', 'r') as arch_data:
+
+            data = json.load(arch_data)
+
+    except FileNotFoundError:
+        messagebox.showerror(title='Error', message="No Data File Found")
+
+    else:
+
+        new_data = data.get(web)
+
+        try:
+            messagebox.showinfo(title='Info', message=f"Email:{new_data['email']}\nPassword:{new_data['password']}")
+
+        except TypeError:
+            messagebox.showerror(title='Error', message="No Website Found")
+
 
 # ---------------------------- SAVE PASSWORD ------------------------------- #
 
 
-def save():
+def create_file(nw_dt):
+
     try:
-        with open('data.txt', 'a') as arch_data:
+        with open('data.json', 'w') as arch_data:
 
-            web = entry_web.get()
-            email = entry_email.get()
-            password = entry_password.get()
+            json.dump(nw_dt, arch_data, indent=4)
 
-            if len(web) == 0 or len(password) == 0:
-                messagebox.showerror(title='Error', message="Please don't leave any fields empty!")
-            else:
-                is_ok = messagebox.askokcancel(title=web, message=f'These are the details entered: \nEmail: {email}'
-                                                                  f'\nPassword: {password} \nIs it ok to save?')
+    except IOError as msj:
+        print(msj)
 
-                if is_ok:
-                    arch_data.write(f'{web};{email};{password}\n')
 
-                    entry_web.delete(first=0, last=END)
-                    entry_email.delete(first=0, last=END)
-                    entry_password.delete(first=0, last=END)
-                    entry_web.focus()
+def save():
 
-    except (IOError, FileNotFoundError):
-        print("ERROR ARCHIVO NO ENCONTRADO")
+    web = entry_web.get().capitalize()
+    email = entry_email.get()
+    password = entry_password.get()
+    new_data = {
+        web: {
+            'email': email,
+            'password': password,
+        }
+    }
+
+    if len(web) == 0 or len(password) == 0:
+        messagebox.showerror(title='Error', message="Please don't leave any fields empty!")
+    else:
+
+        try:
+            with open('data.json', 'r') as data_file:
+
+                data = json.load(data_file)
+                data.update(new_data)
+
+        except(IOError, FileNotFoundError):
+            create_file(new_data)
+
+        else:
+
+            data.update(new_data)
+
+            try:
+                with open('data.json', 'w') as arch_data:
+
+                    json.dump(data, arch_data, indent=4)
+
+            except IOError as msj:
+                print(msj)
+
+        finally:
+
+            entry_web.delete(first=0, last=END)
+            entry_email.delete(first=0, last=END)
+            entry_password.delete(first=0, last=END)
+            entry_web.focus()
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -90,5 +149,8 @@ generate_pass_button = Button(text='Generate Password', command=password_generat
 generate_pass_button.grid(row=3, column=3)
 add_button = Button(text='Add', width=36, command=save)
 add_button.grid(row=4, column=1, columnspan=2)
+search_button = Button(text='Search', width=14, command=find_password)
+search_button.grid(row=1, column=3)
 
 window.mainloop()
+
